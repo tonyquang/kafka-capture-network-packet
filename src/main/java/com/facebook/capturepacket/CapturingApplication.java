@@ -1,9 +1,7 @@
 package com.facebook.capturepacket;
 
-import com.facebook.capturepacket.configuration.Constant;
 import com.facebook.capturepacket.controller.StartApp;
-
-import javax.swing.JOptionPane;
+import org.apache.commons.cli.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -11,24 +9,46 @@ public class CapturingApplication {
 
     public static void main(String[] args) {
 
-    	if(checkDir(Constant.SystemDefault.CURRENT_DIR)){
-			JOptionPane.showMessageDialog(null,
-					"Current path must not be contain spacing",
-					"Warning!!!",
-					JOptionPane.WARNING_MESSAGE);
-			System.exit(0);
-		}
+        Options options = new Options();
 
-        StartApp starter = new StartApp();
-        starter.startApp();
+        Option input = new Option("k", "kafka", true, "kafka server");
+        input.setRequired(true);
+        options.addOption(input);
+
+        Option output = new Option("t", "topic", true, "topic name");
+        output.setRequired(true);
+        options.addOption(output);
+
+        CommandLineParser parser = new DefaultParser();
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLine cmd;
+
+        try {
+            cmd = parser.parse(options, args);
+
+            String kafkaAddress = cmd.getOptionValue("kafka");
+            String topicName = cmd.getOptionValue("topic");
+
+            if(!checkValidKafkaAddress(kafkaAddress)){
+                System.out.println("Kafka Server Address Is Invalid");
+                System.exit(1);
+            }else{
+                StartApp starter = new StartApp();
+                starter.startApp(kafkaAddress, topicName);
+            }
+
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("CapturingApplication", options);
+            System.exit(1);
+        }
     }
 
-    // Check dir path is have spacing
-    // return true if it has spacing
-    // return false for other case
-    private static boolean checkDir(String dir) {
-        Pattern pattern = Pattern.compile("\\s");
-        Matcher matcher = pattern.matcher(dir);
+
+
+    private static boolean checkValidKafkaAddress(String kafkaAddress){
+        Pattern pattern = Pattern.compile("^([0-9]{1,3}(?:\\.[0-9]{1,3}){3}|[a-zA-Z]+):([0-9]{1,5})$");
+        Matcher matcher = pattern.matcher(kafkaAddress);
         return matcher.find();
     }
 

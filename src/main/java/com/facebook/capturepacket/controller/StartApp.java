@@ -10,16 +10,8 @@ public class StartApp {
 
     ProxyServer startProxyServer;
 
-    public void startApp(){
-        startProxyServer = new ProxyServer();
-
-        log.info("Waiting 15s before starting proxy server....");
-
-        try {
-            Thread.currentThread().sleep(15000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public void startApp(String kafkaAddress, String topicName){
+        startProxyServer = new ProxyServer(kafkaAddress, topicName);
         startProxyServer.start();
     }
 

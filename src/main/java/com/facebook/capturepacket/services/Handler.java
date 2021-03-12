@@ -1,6 +1,5 @@
 package com.facebook.capturepacket.services;
 
-import com.facebook.capturepacket.configuration.Constant;
 import com.facebook.capturepacket.configuration.KafkaConfig;
 import com.facebook.capturepacket.model.NetworkPacket;
 import lombok.extern.slf4j.Slf4j;
@@ -20,19 +19,24 @@ public class Handler extends Thread {
             Pattern.CASE_INSENSITIVE);
     private final Socket clientSocket;
     private boolean previousWasR = false;
+    private final String userName = System.getProperty("user.name");
 
     KafkaTemplate<String, NetworkPacket> kafkaJsonTemplate;
+    private final String addressKafkaServer;
+    private final String topicKafka;
 
-    public Handler(Socket clientSocket) {
+    public Handler(Socket clientSocket, String addressKafkaServer, String topicKafka) {
         this.clientSocket = clientSocket;
+        this.addressKafkaServer = addressKafkaServer;
+        this.topicKafka = topicKafka;
     }
 
     @Override
     public void run() {
-        kafkaJsonTemplate = new KafkaConfig().createKafkaTemplate();
+        kafkaJsonTemplate = new KafkaConfig().createKafkaTemplate(this.addressKafkaServer);
         try {
             String request = readLine(clientSocket);
-            kafkaJsonTemplate.send(Constant.kafkaConstant.DEFAULT_TOPIC, createMessage(request));
+            kafkaJsonTemplate.send(this.topicKafka, createMessage(request));
             Matcher matcher = CONNECT_PATTERN.matcher(request);
             if (matcher.matches()) {
                 String header;
@@ -135,7 +139,7 @@ public class Handler extends Thread {
                 }
             }
         } catch (IOException e) {
-              log.error("Forward Data error", e);
+            log.error("Forward Data error", e);
         }
     }
 
@@ -163,10 +167,10 @@ public class Handler extends Thread {
         return byteArrayOutputStream.toString(StandardCharsets.ISO_8859_1);
     }
 
-    private NetworkPacket createMessage(String msg){
+    private NetworkPacket createMessage(String msg) {
         return new NetworkPacket().builder()
                 .message(msg)
-                .userName(Constant.SystemDefault.USER_NAME)
+                .userName(userName)
                 .timeStamp(new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date()))
                 .build();
     }
